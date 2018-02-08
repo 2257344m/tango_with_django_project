@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+<html>
+
+    <head>
+        <title>Rango</title>
+    </head>
+
+    <body>
+        <h1>Rango says...</h1>
+        <div>
+            This is the polls page. <br />
+            {% if latest_question_list %}
+                <ul>
+                {% for question in latest_question_list %}
+                    <li><a href="{% url 'detail' question.id %}">
+                        {{ question.question_text }}
+                    </a></li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>No polls are availiable.</p>
+            {% endif %}
+        </div>
+        <div>
+            <a href='/rango/'>Back</a><br />
+        </div>
+    </body>
+
+</html>
+
