@@ -1,7 +1,10 @@
-from django.shortcuts import render
-from django.http import HttpResponse, Http404
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.urls import reverse
+from django.views import generic
 
-from rango.models import Category, Page, Question
+from rango.models import Category, Page, Question, Choice
+from rango.forms import CategoryForm, PageForm
 
 def index(request):
 
@@ -18,6 +21,41 @@ def index(request):
 def about(request):
 
     return render(request, 'rango/about.html')
+
+def add_category(request):
+    form = CategoryForm()
+
+    if request.method == 'POST':
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            form.save(commit=True)
+            return index(request)
+        else:
+            print(form.errors)
+
+    return render(request, 'rango/add_category.html', {'form': form})
+
+def add_page(request, category_name_slug):
+    try:
+        category = Category.objects.get(slug=category_name_slug)
+    except Category.DoesNotExist:
+        category = None
+
+    form = PageForm()
+    if request.method == 'POST':
+        form = PageForm(request.POST)
+        if form.is_valid():
+            if category:
+                page = form.save(commit=False)
+                page.category = category
+                page.views = 0
+                page.save()
+                return show_category(request, category_name_slug)
+        else:
+            print(form.errors)
+
+    context_dict = {'form':form, 'category':category}
+    return render(request, 'rango/add_page.html', context_dict)
 
 def show_category(request, category_name_slug):
 
@@ -37,25 +75,36 @@ def show_category(request, category_name_slug):
 
     return render(request, 'rango/category.html', context_dict)
 
-def polls(request):
-    
-    latest_question_list = Question.objects.order_by('-pub_date')[:5]
-   
-    context_dict = {'latest_question_list': latest_question_list,
-                   }
-    
-    return render(request, 'polls/index.html', context_dict)
+class PollsView(generic.ListView):
+    template_name = 'polls/index.html'
+    context_object_name = 'latest_question_list'
+
+    def get_queryset(self):
         
-def detail(request, question_id):
-    try:
-        question = Question.objects.get(pk=question_id)
-    except Question.DoesNotExist:
-        raise Http404("Question does not exist")
-    return render(request, 'polls/detail.html', {'question': question})
+        return Question.objects.order_by('-pub_date')[:5]
 
-def results(request, question_id):
-    response = "You're looking at the results of question %s."
-    return HttpResponse(response % question_id)
 
+class DetailView(generic.DetailView):
+    model = Question
+    template_name = 'polls/detail.html'
+
+
+class ResultsView(generic.DetailView):
+    model = Question
+    template_name = 'polls/results.html'
+    
 def vote(request, question_id):
-    return HttpResponse("You're voting on question %s" % question_id)
+    question = get_object_or_404(Question, pk=question_id)
+    
+    try:
+        selected_choice = question.choice_set.get(pk=request.POST['choice'])
+    except (KeyError, Choice.DoesNotExist):
+        return render(request, 'polls/detail.html', {
+            'question': question,
+            'error_message': "You didn't select a choice.",
+            })
+    else:
+        selected_choice.votes += 1
+        selected_choice.save()
+        
+    return HttpResponseRedirect(reverse('results', args=(question.id,)))

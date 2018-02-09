@@ -5,11 +5,14 @@ from django.template.defaultfilters import slugify
 
 # Models for the categories and pages
 
+length = 128
+
 class Category(models.Model):
-    name = models.CharField(max_length=128, unique=True)
+    name_len = length
+    name = models.CharField(max_length=name_len, unique=True)
     views = models.IntegerField(default=0)
     likes = models.IntegerField(default=0)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True) 
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
@@ -22,8 +25,9 @@ class Category(models.Model):
         return self.name
 
 class Page(models.Model):
+    title_len = length
     category = models.ForeignKey(Category)
-    title = models.CharField(max_length=128)
+    title = models.CharField(max_length=title_len)
     url = models.URLField()
     views = models.IntegerField(default=0)
 
