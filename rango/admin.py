@@ -1,5 +1,5 @@
 from django.contrib import admin
-from rango.models import Category, Page, Question, Choice
+from rango.models import Category, Page, Question, Choice, UserProfile
 
 # Register your models here.
 
@@ -30,3 +30,4 @@ class QuestionAdmin(admin.ModelAdmin):
     search_fields = ['question_text']
     
 admin.site.register(Question, QuestionAdmin)
+admin.site.register(UserProfile)
